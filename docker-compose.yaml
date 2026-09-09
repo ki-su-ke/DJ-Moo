@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    # debugpy経由でDjango開発用サーバーを起動
+    command: python -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --nothread --noreload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+      - "5678:5678"
+    stdin_open: true
+    tty: true
