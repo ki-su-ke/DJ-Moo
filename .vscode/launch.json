@@ -2,9 +2,31 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Django: Docker Attach",
+      "name": "Django: Docker Attach (F5: デバッグ起動)",
       "type": "debugpy",
       "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ],
+      "preLaunchTask": "docker-compose-up",
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Starting development server at (https?://\\S+)",
+        "uriFormat": "http://localhost:8000"
+      }
+    },
+    {
+      "name": "Django: Docker Run (Shift+F5: 通常起動)",
+      "type": "debugpy",
+      "request": "attach",
+      "noDebug": true,  // <-- デバッガーのフックを無効化して高速実行
       "connect": {
         "host": "localhost",
         "port": 5678
