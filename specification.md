@@ -41,14 +41,19 @@
 User が Organization に所属している関係。中間テーブルとして明示的にモデル化し、追加属性（Role、スコープ、管理者フラグ）を持つ。権限付与の主体は User ではなく Membership である。
 
 ### 2-4. Permission
-一般化された操作権限。`resource.action` 形式で管理する。
-例：
-- `product.view`
-- `product.create`
-- `product.update`
-- `product.delete`
-- `product.view_deleted`
-- `product.restore`
+~~一般化された操作権限。`resource.action` 形式で管理する。~~
+~~例：~~
+~~- `product.view`~~
+~~- `product.create`~~
+~~- `product.update`~~
+~~- `product.delete`~~
+~~- `product.view_deleted`~~
+~~- `product.restore`~~
+
+一般化された操作権限。対象'resource'と操作'action'の組み合わせで表現する。
+- `resource` は `product` などのリソース名
+- `action` は `view`, `create`, `update`, `delete`, `view_deleted`, `restore` などの操作名称  
+`view_deleted`は論理削除されたリソースへの閲覧権限, `restore`は論理削除されたリソースの復元権限。  
 
 ### 2-5. Role
 Permission の集合。Organization ごとに作成・編集可能。1つの Membership は複数の Role を持てる。
@@ -70,18 +75,26 @@ Organization 配下の保護対象データ。初期実装の対象業務リソ�
 
 ### 3-1. リレーション概要
 
-```
-User (1) ───< (N) Membership (N) >─── (1) Organization
-                       │
-                       N:M
-                       │
-                      Role (N) >───< (N) Permission
+```text
+User --------< Membership >-------- Organization
+                    |
+                    | 1:N
+                    v
+            MembershipRole
+              ^       |
+              |       v
+         Membership   Role --------< Role.permissions >-------- Permission
+                         |
+                         v
+                    Organization
 ```
 
-- User と Organization は Membership を中間テーブルとする多対多関係
-- Membership は複数の Role を持てる
-- Role は複数の Permission を持つ
-- Permission はシステム共通マスタ
+### 文章でまとめると
+User は Organization への所属を Membership として持つ。
+権限は User に直接付かず、Membership に対して Role を割り当てる形で付与される。
+Role は Organization ごとに定義される Permission の集合であり、Permission 自体はシステム共通マスタである。
+Membership と Role の関係は MembershipRole で表し、この中間モデルで Membership と Role の Organization 一致を保証する。(テナント境界の厳守)
+これにより、Organization ごとに閉じた RBAC を実現しつつ、1ユーザーが複数 Organization に所属しても、対象 Organization の Membership 単位で安全に権限判定できる。
 
 ### 3-2. 各モデル定義
 
@@ -91,20 +104,6 @@ UUIDによる主キー、作成日時・更新日時の自動管理を盛り込�
 また、META情報として、 `ordering = ["-created_at"]` を設定することで、デフォルトで作成日時順にソートされるようにする。  
 メリットとしては、クエリセットをデフォルトで作成日時順にソートできるため、コードの簡潔さと一貫性が向上する。忘れやすい部分でもあるし、おかしなクエリを防ぐことができる。  
 
-```python
-import uuid
-from django.db import models
-
-
-class BaseModel(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
-        ordering = ["-created_at"]
-```
 
 #### User
 Django 標準ユーザーモデルを使用。`is_superuser` フラグを持つ。
@@ -117,7 +116,7 @@ Django 標準ユーザーモデルを使用。`is_superuser` フラグを持つ�
 | deleted | DateTimeField | django-safedelete による論理削除時刻 |
 
 #### Membership
-| ィールド | 型 | 備考 |
+| フィールド | 型 | 備考 |
 |-----------|-----|------|
 | user | ForeignKey(User) | |
 | organization | ForeignKey(Organization) | |
@@ -141,7 +140,8 @@ Django 標準ユーザーモデルを使用。`is_superuser` フラグを持つ�
 #### Permission（システム共通マスタ）
 | フィールド | 型 | 備考 |
 |-----------|-----|------|
-| codename | CharField | `resource.action` 形式 |
+| resource | CharField | リソース名(`product`など) |
+| action | CharField | 操作名 |
 | name | CharField | 表示名 |
 
 #### Product
@@ -159,7 +159,8 @@ Django 標準ユーザーモデルを使用。`is_superuser` フラグを持つ�
 
 ### 4-1. Permission チェックの原則
 
-Permission チェックは **Role → Permission のみ**を参照する。`is_org_admin` フラグは Permission チェックに使用しない。
+Permission チェックは **Role → Permission のみ**を参照する。  
+`is_org_admin` フラグは Permission チェックに使用しない。
 
 ### 4-2. 有効 Permission の算出
 
@@ -171,6 +172,8 @@ effective_permissions = Permission.objects.filter(
     role__membership=membership
 ).distinct()
 ```
+
+※ ただし、有効 Permission は対象 Organization に対応する Membership ごとに算出する。User の全 Membership を横断して合算してはならない。
 
 ### 4-3. 組織管理権限（is_org_admin）
 

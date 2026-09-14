@@ -62,7 +62,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []  # スーパーユーザー作成時、email以外に必要なフィールド
 
     class Meta:
-        db_table = "users"
+        db_table = "accounts_user"
         verbose_name = "ユーザー"
         verbose_name_plural = "ユーザー"
 
