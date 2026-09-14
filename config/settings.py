@@ -132,3 +132,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model の定義
 AUTH_USER_MODEL = 'accounts.User'
+
+# fixtures
+FIXTURE_DIRS = [
+    BASE_DIR / "fixtures",
+]
+

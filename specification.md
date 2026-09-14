@@ -11,9 +11,9 @@
 |------|------|
 | テナント単位 | Organization |
 | ユーザー所属 | 1 User が複数 Organization に所属可能 |
-| 権限付与先 | Membership（User 直付け禁止） |
+| 権限付与先 | Membership（UserはMembershipを通してOrganizationに所属する） |
 | Role の性質 | Permission の集合。Organization ごとに管理 |
-| Permission の性質 | システム共通マスタ。`resource.action` 形式 |
+| Permission の性質 | システム共通マスタ。 |
 | アクセス制御 | テナント境界 + Permission + スコープの3層 |
 | URL 設計 | `/{organization_slug}/...` に Organization の公開識別子を含める |
 | 初期保護対象 | Product |
@@ -97,6 +97,7 @@ Membership と Role の関係は MembershipRole で表し、この中間モデ�
 これにより、Organization ごとに閉じた RBAC を実現しつつ、1ユーザーが複数 Organization に所属しても、対象 Organization の Membership 単位で安全に権限判定できる。
 
 ### 3-2. 各モデル定義
+長くなったので割愛。概要と特徴的なポイントだけ記載しておきます。
 
 #### 全モデル共通の基底モデルとして
 
@@ -109,49 +110,31 @@ UUIDによる主キー、作成日時・更新日時の自動管理を盛り込�
 Django 標準ユーザーモデルを使用。`is_superuser` フラグを持つ。
 
 #### Organization
-| フィールド | 型 | 備考 |
-|-----------|-----|------|
-| name | CharField | 組織名 |
-| slug | SlugField | 公開識別子。論理削除済みも含め再利用不可 |
-| deleted | DateTimeField | django-safedelete による論理削除時刻 |
+組織名のほかに、公開識別子として slug を持つ。
 
 #### Membership
-| フィールド | 型 | 備考 |
-|-----------|-----|------|
-| user | ForeignKey(User) | |
-| organization | ForeignKey(Organization) | |
-| roles | ManyToManyField(Role) | 複数 Role 所持可能 |
-| scope_type | CharField | `all` または `assigned` |
-| is_org_admin | BooleanField | Organization 管理者フラグ |
-| deleted | DateTimeField | 論理削除時刻 |
+OrganizationとUserを結び付ける中間モデル。  
+またRoleもここに付与される。  
+AdminRoleを持つ管理者には、is_org_adminフラグをつける。  
 
-制約：
-- `user` と `organization` はユニーク（1人が同じ Organization に重複所属不可）
-- `is_org_admin=True` の Membership が Organization 内に必ず1人以上存在することを強制する
+制約：  
+- 1人が同じ Organization に重複所属不可
+- `is_org_admin=True` の Membership が Organization 内に必ず1人以上存在することを強制する  
 
 #### Role
-| フィールド | 型 | 備考 |
-|-----------|-----|------|
-| organization | ForeignKey(Organization) | 所属 Organization |
-| name | CharField | 例：`Admin`, `Editor`, `Viewer` |
-| permissions | ManyToManyField(Permission) | |
-| deleted | DateTimeField | 論理削除時刻 |
+Role は Organization によって作成・管理され、Permission をまとめたものとする。  
+同じ内容であっても、Organization 間で 同一Role の共有はなされない。  
+Role は Membership を通じて付与される。  
+所属がはっきりしているので、テナント独自ルールの追加が可能となる。  
 
 #### Permission（システム共通マスタ）
-| フィールド | 型 | 備考 |
-|-----------|-----|------|
-| resource | CharField | リソース名(`product`など) |
-| action | CharField | 操作名 |
-| name | CharField | 表示名 |
+システム共通マスタとして Permission は管理される。  
+User  がこれを作成・編集することはできない。  
+
 
 #### Product
-| フィールド | 型 | 備考 |
-|-----------|-----|------|
-| organization | ForeignKey(Organization) | テナント境界 |
-| name | CharField | |
-| assignees | ManyToManyField(Membership) | `assigned` スコープ判定用 |
-| created_by | ForeignKey(Membership) | 作成者。監査ログ用途 |
-| deleted | DateTimeField | 論理削除時刻 |
+Product は Organization に所属し、Organization を跨ぐことはできない。
+Organization は Membership を通じて Product へのアクセス権をコントロールできる。
 
 ---
 
@@ -177,12 +160,13 @@ effective_permissions = Permission.objects.filter(
 
 ### 4-3. 組織管理権限（is_org_admin）
 
-`is_org_admin=True` は以下の操作を許可する。これは Permission 体系とは別の独立したフラグとする。
+`is_org_admin=True` は以下の操作を許可する。
 
 - Membership の招待・削除
 - Organization 設定の変更
 - Role の作成・編集・削除
 
+is_org_admin は Role によって制御される。
 Organization 内の `is_org_admin=True` の Membership は必ず1人以上存在することを強制する。最後の1人を削除・無効化しようとした場合はエラーとする。
 
 ### 4-4. スーパーユーザー（Django）
@@ -215,7 +199,7 @@ Organization 内の `is_org_admin=True` の Membership は必ず1人以上存在
 
 ### 5-3. Product 作成時の挙動
 
-`scope_type=assigned` の Membership が Product を作成した場合、作成者を自動的に `assignees` に追加する。`created_by` は監査ログ用途として記録するが、アクセス制御には `assignees` のみを使用す。
+`scope_type=assigned` の Membership が Product を作成した場合、作成者を自動的に `assignees` に追加する。`created_by` は監査ログ用途として記録するが、アクセス制御には `assignees` のみを使用する。
 
 ---
 
@@ -296,20 +280,6 @@ Membership に紐づく権限情報を返す際、以下の構造とする。
 
 カスタム QuerySet に `for_membership(membership)` メソッドを定義し、テナント境界・スコープ・論理削除フィルタを一元化する。
 
-```python
-class ProductQuerySet(models.QuerySet):
-    def for_membership(self, membership):
-        qs = self.filter(organization=membership.organization)
-
-        if membership.user.is_superuser:
-            return qs
-
-        if membership.scope_type == "assigned":
-            qs = qs.filter(assignees=membership)
-
-        return qs
-```
-
 ビュー内では常に `Product.objects.for_membership(request.membership)` を使用する。
 
 ---
@@ -318,7 +288,8 @@ class ProductQuerySet(models.QuerySet):
 
 ### 10-1. Permission マスタ
 
-`product.view`, `product.create`, `product.update`, `product.delete` をシステム共通マスタとして fixtures またはマイグレーションで投入する。将来のリソース追加時も同じ `resource.action` 形式で追加する。
+システム共通マスタとして fixtures で投入する。
+詳細は、[Permissionの規定値について.md](./Permissionの規定値について.md) を参照。
 
 ### 10-2. Organization 作成時の自動生成 Role
 
@@ -335,72 +306,14 @@ Organization の作成者には Admin Role を自動付与し、`is_org_admin=Tr
 ---
 
 ## 11 論理削除済みデータのアクセス制御（追加）
-Organization 管理者（Admin Role 所持者）は product.view_deleted と product.restore によって、論理削除済み Product の閲覧・復元が可能とする。Editor・Viewer には該当 Permission を付与しない。
+Organization 管理者（Admin Role 所持者）は product.view_deleted と product.restore によって、論理削除済み Product の閲覧・復元が可能とする。Editor・Viewer には該当 Permission を付与しない。(要検討)
 
 ----
 
-## 12 セキュリティイベント監査（追加）
+## 12 セキュリティイベント監査
 テナント境界違反や権限不足によるアクセス拒否が発生した場合、SecurityEvent モデルにイベントを記録する。同一ユーザー・IP からの継続的な不正アクセス試行を検知できる構造とし、将来的なレート制限やアラート機能への拡張を見据える。
 
-現段階でのイメージは以下の通り：
-
-```python
-class SecurityEvent(models.Model):
-    EVENT_TYPES = [
-        ('tenant_escape', 'テナント境界違反試行'),
-        ('permission_denied', '権限不足アクセス試行'),
-        ('deleted_data_access', '論理削除済みデータアクセス試行'),
-    ]
-    
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    ip_address = models.GenericIPAddressField()
-    event_type = models.CharField(max_length=30, choices=EVENT_TYPES)
-    attempted_organization_slug = models.SlugField()  # URLに含まれていたslug
-    target_resource = models.CharField(max_length=100)  # product など
-    target_resource_id = models.CharField(max_length=100, blank=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    user_agent = models.TextField(blank=True)
-    count = models.PositiveIntegerField(default=1)  # 同条件での集計用
-    
-    class Meta:
-        indexes = [
-            models.Index(fields=['user', 'event_type', 'timestamp']),
-            models.Index(fields=['ip_address', 'event_type', 'timestamp']),
-        ]
-```
-
-このようなテーブルを追加し、アクセス制御のロジックの中でイベントを記録する。
-DRF のカスタム Permission クラスまたはミドルウェアでフックするという形か。
-
-```python
-# カスタム Permission クラスのイメージ
-class TenantPermission(BasePermission):
-    def has_permission(self, request, view):
-        organization = request.organization
-        membership = request.membership
-        
-        # テナント境界チェック：URLのorganizationと対象データのorganizationが一致するか
-        # （ビュー内でチェックする場合は has_object_permission で）
-        
-        if not membership and not request.user.is_superuser:
-            # テナント跨ぎ疑いのイベントを記録
-            SecurityEvent.objects.create(
-                user=request.user if request.user.is_authenticated else None,
-                ip_address=get_client_ip(request),
-                event_type='tenant_escape',
-                attempted_organization_slug=view.kwargs.get('organization_slug'),
-                target_resource=view.basename or 'unknown'
-            )
-            return False
-            
-        return True
-```
-
-パターンA：イベントごとに1レコード（履歴重視）  
-毎回 create する  
-後で COUNT(*) GROUP BY user, DATE(timestamp) で集計  
-
-という形で行くこととする。  
+この監査ログは COUNT(*) GROUP BY user, DATE(timestamp) のような形で集計可能。
 
 ----
 
@@ -423,7 +336,7 @@ project/
 
 | 配置するもの | 理由 |
 |-----------|------|
-| BaseModel | 各アプリに共通なモデルをcoreアプリに置くのが Django 慣習 |
+| BaseModel | 各アプリに共通なモデルをcoreアプリに置く |
 
 現時点ではBaseModelしか該当しないが、将来的に他の要素を増やす可能性もあり。
 
@@ -431,11 +344,9 @@ project/
 
 | 配置するもの | 理由 |
 |-----------|------|
-| Custom User モデル | カスタムUserは独立したアプリに置くのが Django 慣習 |
+| Custom User モデル | カスタムUserは独立したアプリに置く |
 | `auth.py`（カスタム認証クラス） | DRF の認証バックエンド拡張があればここ |
-| JWT 設定（SimpleJWT を使う場合） | 設定は `config/settings.py`、カスタム処理があればここ |
-
-認証部を独立アプリにする必要はない。DRF + SimpleJWT を使うなら `accounts` にまとめて十分。カスタム認証バックエンドやログイン/ログアウト API もここに置く。
+| JWT 設定（SimpleJWT を使う場合） | 設定は `config/settings.py`、カスタム処理があればここ |  
 
 ---
 
@@ -444,10 +355,7 @@ project/
 | 配置するもの | 理由 |
 |-----------|------|
 | Organization, Membership, Role, Permission モデル | テナントと権限は密結合なので同じアプリ |
-| `middleware.py` | `request.organization` / `request.membership` の解決 |
-| `permissions.py` | DRF のカスタム Permission クラス（TenantPermission, RBACPermission） |
-| `seed.py` | Organization 作成時の Role シード処理 |
-| `signals.py` | Organization 作成時の自動処理フック |
+| middleware / service層 | テナント境界ルールの解決 |
 
 RBAC を `tenants` に入れる理由：Role・Permission・Membership は Organization（テナント）と切り離せないため、同じアプリにまとめることで循環インポートを防ぐ。
 
@@ -458,9 +366,7 @@ RBAC を `tenants` に入れる理由：Role・Permission・Membership は Organ
 | 配置するもの | 理由 |
 |-----------|------|
 | Product モデル | 初期保護対象リソース |
-| `querysets.py` | `ProductQuerySet.for_membership()` の定義 |
-| `views.py`（ViewSet） | Product CRUD + restore/hard_delete アクション |
-| `serializers.py` | シリアライザー |
+| service層 | Product のロジックを管理 |
 
 Product モデルを `products` に置く理由：将来的に Order, Report などが増えた時に、業務ドメインごとにアプリを分離しやすい。今は Product だけでも、テナント基盤と業務データを分離しておくと後々きれいになる。
 
@@ -471,43 +377,12 @@ Product モデルを `products` に置く理由：将来的に Order, Report な
 | 配置するもの | 理由 |
 |-----------|------|
 | SecurityEvent モデル | セキュリティイベントの永続化 |
-| `recorder.py` | イベント記録用のユーティリティ関数 |
-| `admin.py` | 管理画面での閲覧用（スーーユーザー専用） |
+| service層 | イベント記録用のユーティリティ関数 |
+| `admin.py` | 管理画面での閲覧用（スーパーユーザー専用） |
 
-独立アプリにする理由：セキュリティイベントはテナントにも業務データにも依存しない横断的関心事。独立させることで、どのアプリからでも呼び出せて、循環インポートが起きない。
+独立アプリにする理由：セキュリティイベントはテナントにも業務データにも依存しない横断的関心事。
 
 ---
-
-### ファイル配置（主要部分）
-
-```
-config/
-├── settings.py
-├── urls.py
-└── middleware.py              # テナント解決ミドルウェア（tenants/middleware.py から import してもOK）
-
-accounts/
-├── models.py                  # Custom User
-├── views.py                   # ログイン/ログアウト API（あれば）
-└── auth.py                    # カスタム認証クラス（あれば）
-
-tenants/
-├── models.py                  # Organization, Membership, Role, Permission
-├── permissions.py             # DRF TenantPermission, RBACPermission
-├── middleware.py              # TenantResolutionMiddleware
-├── seed.py                    # create_default_roles(), create_org_with_admin()
-└── signals.py                 # Organization 作成後の Role シード
-
-products/
-├── models.py                  # Product（QuerySet もここで定義）
-├── views.py                   # ProductViewSet
-└── serializers.py
-
-audit/
-├── models.py                  # SecurityEvent
-├── recorder.py                # record_security_event()
-└── admin.py
-```
 
 
 ----
