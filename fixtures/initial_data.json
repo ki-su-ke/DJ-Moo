@@ -5,7 +5,9 @@
     "fields": {
       "resource": "product",
       "action": "view",
-      "name": "製品の閲覧"
+      "name": "製品の閲覧",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -14,7 +16,9 @@
     "fields": {
       "resource": "product",
       "action": "create",
-      "name": "製品の作成"
+      "name": "製品の作成",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -23,7 +27,9 @@
     "fields": {
       "resource": "product",
       "action": "update",
-      "name": "製品の更新"
+      "name": "製品の更新",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -32,7 +38,9 @@
     "fields": {
       "resource": "product",
       "action": "delete",
-      "name": "製品の削除"
+      "name": "製品の削除",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -41,7 +49,9 @@
     "fields": {
       "resource": "product",
       "action": "view_deleted",
-      "name": "削除済み製品の閲覧"
+      "name": "削除済み製品の閲覧",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -50,17 +60,21 @@
     "fields": {
       "resource": "product",
       "action": "restore",
-      "name": "製品の復元"
+      "name": "製品の復元",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
-  
+
   {
     "model": "tenants.permission",
     "pk": "00000000-0000-0000-0000-000000000101",
     "fields": {
       "resource": "organization",
       "action": "manage",
-      "name": "組織設定の管理"
+      "name": "組織設定の管理",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -69,17 +83,21 @@
     "fields": {
       "resource": "organization",
       "action": "view",
-      "name": "組織情報の閲覧"
+      "name": "組織情報の閲覧",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
-  
+
   {
     "model": "tenants.permission",
     "pk": "00000000-0000-0000-0000-000000000201",
     "fields": {
       "resource": "membership",
       "action": "invite",
-      "name": "メンバー招待"
+      "name": "メンバー招待",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -88,7 +106,9 @@
     "fields": {
       "resource": "membership",
       "action": "remove",
-      "name": "メンバー削除"
+      "name": "メンバー削除",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -97,17 +117,21 @@
     "fields": {
       "resource": "membership",
       "action": "manage",
-      "name": "メンバーシップ管理"
+      "name": "メンバーシップ管理",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
-  
+
   {
     "model": "tenants.permission",
     "pk": "00000000-0000-0000-0000-000000000301",
     "fields": {
       "resource": "role",
       "action": "manage",
-      "name": "ロール管理"
+      "name": "ロール管理",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   },
   {
@@ -116,7 +140,9 @@
     "fields": {
       "resource": "role",
       "action": "assign",
-      "name": "ロール割り当て"
+      "name": "ロール割り当て",
+      "created_at": "2026-09-12T00:00:00Z",
+      "updated_at": "2026-09-12T00:00:00Z"
     }
   }
 ]

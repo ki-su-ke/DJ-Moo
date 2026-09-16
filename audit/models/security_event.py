@@ -28,13 +28,13 @@ class SecurityEvent(BaseModel):
     )
     """ どのユーザーか """
 
-    user_id = models.UUIDField(editable=False)
+    audit_user_id = models.UUIDField(editable=False, blank=True, null=True)
     """ 監査用: 削除後も追跡可能なID """
 
-    user_email = models.EmailField()
+    audit_user_email = models.EmailField(blank=True)
     """ 監査用: 削除後も追跡・特定可能なようにemailも保持しておく """
 
-    ip_address = models.GenericIPAddressField()
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
     """ 該当ユーザーの IP Address """
 
     event_type = models.CharField(
@@ -43,10 +43,10 @@ class SecurityEvent(BaseModel):
     )
     """ イベントタイプ SecurityEventTypeで定義された値をとる """
 
-    attempted_organization_slug = models.SlugField(max_length=100)
+    attempted_organization_slug = models.SlugField(max_length=100, blank=True)
     """ テナント境界越えを試行した、対象となるテナントスラッグ """
 
-    target_resource = models.CharField(max_length=100)
+    target_resource = models.CharField(max_length=100, blank=True)
     """ 対象となるリソース """
 
     target_resource_id = models.CharField(max_length=100, blank=True)
@@ -70,11 +70,17 @@ class SecurityEvent(BaseModel):
         verbose_name = "Security Event"
         verbose_name_plural = "Security Events"
         indexes = [
-            models.Index(fields=["user_email"]),
+            models.Index(fields=["audit_user_email"]),
             models.Index(fields=["user", "event_type", "created_at"]),
             models.Index(fields=["ip_address", "event_type", "created_at"]),
             models.Index(fields=["attempted_organization_slug", "created_at"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if self.user:
+            self.audit_user_id = self.user.id
+            self.audit_user_email = self.user.email
+        super().save(*args, **kwargs)
     
     def __str__(self) -> str:
         return f"{self.event_type} @ {self.attempted_organization_slug}"
