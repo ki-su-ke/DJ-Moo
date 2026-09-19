@@ -11,6 +11,9 @@ from tenants.models import (
     Organization, Permission, Role
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -67,7 +70,8 @@ class OrganizationService:
         # 持っていないのなら例外
         if missing_keys:
             missing_text = ", ".join([f"{res}.{act}" for res, act in missing_keys])
-            raise ValidationError(f"Required permissions are missing: {missing_text}")
+            logger.error(f"Required permissions are missing: {missing_text}")
+            raise ValidationError("有効なPermissionを確認できませんでした。")
 
         return permission_map
     
@@ -80,13 +84,21 @@ class OrganizationService:
         permission_map = OrganizationService._validate_default_permissions_exist()
         
         roles = {}
-        for role_name, permission_keys in DEFAULT_ROLE_PERMISSION_KEYS.items():
-            role = Role.objects.create(
-                organization=organization,
-                name=role_name,
-            )
-            role.permissions.set([permission_map[key] for key in permission_keys])
-            roles[role_name] = role
+        try:
+            for role_name, permission_keys in DEFAULT_ROLE_PERMISSION_KEYS.items():
+                try:
+                    role = Role.objects.create(
+                        organization=organization,
+                        name=role_name,
+                    )
+                    role.permissions.set([permission_map[key] for key in permission_keys])
+                    roles[role_name] = role
+                except IntegrityError as e:
+                    logger.error(f"Failed to create Role: {role_name} - {str(e)}", exc_info=True)
+                    raise ValidationError("ロールの作成に失敗しました。")
+        except Exception as e:
+            logger.error(f"Unexpected error occurred: {str(e)}", exc_info=True)
+            raise ValidationError("予期せぬエラーです。")
         
         return roles
     
@@ -106,12 +118,16 @@ class OrganizationService:
             
         キーワード引数を強制: create_organization(user=user, name="組織名", slug="org-slug")
         """
+        logger.info(f"Creating organization: {name} with slug: {slug}")
+
         try:
             organization = Organization.objects.create(name=name, slug=slug)
         except IntegrityError as e:
-            raise ValidationError(f"Organization slug: {slug} が既に使用されています") from e
+            logger.error(f"Failed to create Organization: {name}/{slug} - {str(e)}", exc_info=True)
+            raise ValidationError(f"Organizationの作成に失敗しました。")
         except Exception as e:
-            raise ValidationError(f"Organizationの作成に失敗しました: {str(e)}") from e
+            logger.error(f"Unexpected error occurred: {str(e)}", exc_info=True)
+            raise ValidationError(f"Organizationの作成に失敗しました。")
 
         roles = OrganizationService.create_default_roles(organization)
 
@@ -124,7 +140,11 @@ class OrganizationService:
                 is_active=True,
             )
         except IntegrityError as e:
-            raise ValidationError(f"Membership の作成に失敗しました") from e
+            logger.error(f"Failed to create Membership on Organization {name}/{slug}: {str(e)}", exc_info=True)
+            raise ValidationError(f"Membership の作成に失敗しました。")
+        except Exception as e:
+            logger.error(f"Unexpected error occurred: {str(e)}", exc_info=True)
+            raise ValidationError("Membership の作成に失敗しました。")
         #
         # Membership に Admin Role を付与
         MembershipService.assign_role(
