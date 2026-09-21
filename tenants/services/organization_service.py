@@ -118,6 +118,8 @@ class OrganizationService:
             
         キーワード引数を強制: create_organization(user=user, name="組織名", slug="org-slug")
         """
+        from tenants.services import MembershipService
+        
         logger.info(f"Creating organization: {name} with slug: {slug}")
 
         try:
