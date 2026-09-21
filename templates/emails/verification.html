@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メールアドレス認証</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #333;">メールアドレス認証</h2>
+        <p>以下のURLをクリックして登録を完了してください：</p>
+        
+        <div style="margin: 20px 0;">
+            <a href="{{ verify_url }}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
+                登録を完了する
+            </a>
+        </div>
+        
+        <p style="font-size: 14px; color: #666;">
+            このURLは24時間有効です。<br>
+            もし登録を覚えていない場合は、このメールを無視してください。
+        </p>
+        
+        <p style="font-size: 14px; color: #999;">
+            または、以下のURLをブラウザにコピーして貼り付けてください：<br>
+            <a href="{{ verify_url }}" style="color: #007bff;">{{ verify_url }}</a>
+        </p>
+    </div>
+</body>
+</html>
