@@ -52,6 +52,11 @@ dj-moo/
 実務でも毎回こうできるときれいに収まりそうなんですけどね。  
 ちなみに、今回のように構成ファーストでやった場合、docker-compose.yamlとかDockerileと同階層にstartprojectして、同じく同階層にstartappしていくといい感じにまとまるというかDjangoっぽい流儀になると思います。  
 
+## テストについて
+アプリ毎の単体テストについては、通常通り `python manage.py test` で実行とします。
+統合テストは、 `python manage.py test tests.integration` として実行とします。
+統合テストはダミーのみという状況ですが、後々規模が大きくなるとテストに時間がかかることが多いので切り分けてる形としています。
+ 
 ---
 
 ## memo
