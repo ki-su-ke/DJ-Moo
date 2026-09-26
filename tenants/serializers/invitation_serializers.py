@@ -43,8 +43,8 @@ class InviteMemberSerializer(serializers.Serializer):
         try:
             role = Role.objects.get(id=value)
             return role.id
-        except Role.DoesNotExist as e:
-            logger.error(f"Invalid Role ID: {value} {str(e)}", exc_info=True)
+        except Role.DoesNotExist:
+            logger.error(f"Invalid Role ID: {value}", exc_info=True)
             raise serializers.ValidationError("無効なIDです。")
 
 

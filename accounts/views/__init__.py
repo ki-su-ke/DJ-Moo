@@ -5,6 +5,14 @@ from .auth_views import (
     LoginView,
     LogoutView,
 )
+
+from .account_views import (
+    ChangePasswordRequestView,
+    ChangePasswordView,
+    ChangeEmailRequestView,
+    ChangeEmailView,
+    UserProfileView,
+)
  
 __all__ = [
     'RegisterView',
@@ -12,4 +20,9 @@ __all__ = [
     'CompleteRegistrationView',
     'LoginView',
     'LogoutView',
+    'ChangePasswordRequestView',
+    'ChangePasswordView',
+    'ChangeEmailRequestView',
+    'ChangeEmailView',
+    'UserProfileView',
 ]

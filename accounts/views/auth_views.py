@@ -50,7 +50,7 @@ class RegisterView(APIView):
 
             # 認証URL生成
             verify_url = request.build_absolute_uri(
-                reverse('auth:verify', kwargs={'token': token_obj.token})
+                reverse('accounts:verify', kwargs={'token': token_obj.token})
             )
 
             # メール送信

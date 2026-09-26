@@ -50,8 +50,8 @@ class ChangePasswordSerializer(serializers.Serializer):
         """ トークンのバリデーション """
         try:
             token_obj = EmailVerificationToken.objects.get(token=value)
-        except EmailVerificationToken.DoesNotExist as e:
-            logger.error(f"Token not found. {str(e)}", exc_info=True)
+        except EmailVerificationToken.DoesNotExist:
+            logger.error(f"Token not found.", exc_info=True)
             raise serializers.ValidationError("無効なトークンです。")
 
         if not token_obj.is_valid():

@@ -126,8 +126,8 @@ class InviteMemberView(APIView):
                                 {"error": "メールの送信に失敗しました"},
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
                             )
-            except Organization.DoesNotExist as e:
-                logger.error(f"Organization not found: {str(e)}", exc_info=True)
+            except Organization.DoesNotExist:
+                logger.error(f"Organization not found.", exc_info=True)
                 return Response(
                             {"error": "組織情報を取得できませんでした。"},
                             status=status.HTTP_404_NOT_FOUND
