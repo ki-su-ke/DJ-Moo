@@ -1,12 +1,49 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "docker-compose-up",
-      "type": "shell",
-      "command": "docker compose up -d",
-      "isBackground": true,
-      "problemMatcher": []
-    }
-  ]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "docker-compose-up",
+            "type": "shell",
+            "command": "docker compose up -d && echo 'Waiting for debugpy port...' && for i in {1..30}; do sleep 1; if nc -z localhost 5678; then echo 'debugpy ready'; exit 0; fi; done; echo 'Timeout waiting for debugpy'",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^(.+)$",
+                    "file": 1,
+                    "location": 0,
+                    "message": 1
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Creating|Starting",
+                    "endsPattern": "debugpy ready"
+                }
+            },
+            "options": {
+                "shell": {
+                    "executable": "bash",
+                    "args": ["-c"]
+                }
+            }
+        },
+        {
+            "label": "docker-compose-down",
+            "type": "shell",
+            "command": "docker compose down",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "options": {
+                "shell": {
+                    "executable": "bash",
+                    "args": ["-c"]
+                }
+            }
+        }
+    ]
 }

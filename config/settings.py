@@ -31,9 +31,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", 'django-insecure-yj^4rsdy$z4@_mxb&)ez+(6o4)%@12&0=p3nw^(bwq11*u2nka')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", False)
+# DEBUG = os.getenv("DEBUG", False)
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = []
+# こっちも .env で設定しておこう
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1") \
+                    .replace(" ", "").split(",")
 
 
 # Application definition
@@ -72,7 +75,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -147,7 +150,20 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+###########################
+# Email Settings
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",  # デフォルトはコンソール
+)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@example.com")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 
+##########################
 # Rest Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -156,10 +172,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
+    # "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
     "NON_FIELD_ERRORS_KEY": "detail",
 }
 
+############################
 # simple jwt
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -175,11 +192,106 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
+#############################
 # Custom User Model の定義
 AUTH_USER_MODEL = 'accounts.User'
 
+#############################
 # fixtures
 FIXTURE_DIRS = [
     BASE_DIR / "fixtures",
 ]
 
+
+###########################
+# Logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if DEBUG else "INFO")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,  # Djangoのデフォルトロガーも残す
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name} {module}:{lineno} - {message}",
+            "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        "simple": {
+            "format": "[{asctime}] {levelname} {name} - {message}",
+            "style": "{",
+            "datefmt": "%H:%M:%S",
+        },
+    },
+    "filters": {
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
+        },
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": LOG_LEVEL,
+            "class": "logging.StreamHandler",
+            "formatter": "simple" if DEBUG else "verbose",
+        },
+        # 本番でファイルにも残したい場合（Dockerなら不要なことが多い）
+        # "file": {
+        #     "level": "INFO",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": BASE_DIR / "logs" / "django.log",
+        #     "maxBytes": 10 * 1024 * 1024,  # 10MB
+        #     "backupCount": 5,
+        #     "formatter": "verbose",
+        # },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        # Django本体
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",  # 4xx/5xx を拾う
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG else "WARNING",  # DEBUG時だけSQLを出す
+            "propagate": False,
+        },
+        # 自分のアプリ群
+        "accounts": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "core": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "tenants": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "audit": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "products": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
