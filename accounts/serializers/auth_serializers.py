@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
+# from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from django.utils import timezone
 import logging
 
 from accounts.models import EmailVerificationToken, EmailVerificationStatus
 from tenants.models import Organization
-from tenants.services import OrganizationService
+# from tenants.services import OrganizationService
 
 logger = logging.getLogger(__name__)
 
