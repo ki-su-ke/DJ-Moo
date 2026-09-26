@@ -1,2 +1,20 @@
 Django ~=5.2.0
 debugpy
+django-safedelete ~=1.4.1
+
+psycopg2-binary>=2.9
+python-dotenv>=1.0
+
+# DRF + JWT
+djangorestframework>=3.15
+djangorestframework-simplejwt>=5.5
+
+# Soft delete
+django-safedelete>=1.4
+
+# --- Phase 2: MFA / Passkeys ---
+# ここはいったん保留　後で再度検討しつつ実装していこう
+# django-two-factor-auth>=1.18
+# django-phonenumber-field>=8.0
+# phonenumbers>=8.13
+# django-otp-webauthn>=0.10
