@@ -273,9 +273,22 @@ class ChangeEmailRequestView(APIView):
 class ChangeEmailView(APIView):
     """
     メールアドレス変更View
-    POST /api/v1/auth/change-email/{token}/
+    GET /api/v1/auth/change-email/{token}/ - 確認画面
+    POST /api/v1/auth/change-email/{token}/ - 変更確定
     """
     permission_classes = []
+
+    def get(self, request: Request, token: str) -> HttpResponse:
+        serializer = ChangeEmailSerializer(data={'token': token})
+        if not serializer.is_valid():
+            return render(request, 'auth/error.html', {'error_message': '無効または期限切れのリンクです。'})
+
+        token_obj = EmailVerificationToken.objects.select_related('user').get(token=token)
+        return render(request, 'auth/email_change.html', {
+            'token': token,
+            'current_email': token_obj.user.email,
+            'new_email': token_obj.new_email,
+        })
 
     def post(self, request: Request, token: str) -> Response:
         """ メールアドレス変更実行 """

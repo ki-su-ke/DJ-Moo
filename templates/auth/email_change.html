@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メールアドレス変更の確認</title>
+    <style>
+        body { font-family: sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+        .container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; }
+        button { padding: 12px 20px; background: #007bff; color: white; border: 0; border-radius: 4px; cursor: pointer; }
+        .error { color: #a52434; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>メールアドレス変更の確認</h1>
+        <p>現在のメールアドレス: {{ current_email }}</p>
+        <p>新しいメールアドレス: {{ new_email }}</p>
+        <p id="message" role="status"></p>
+        <form id="confirmation-form">
+            <button type="submit">変更を確定する</button>
+        </form>
+    </main>
+    <script>
+        const form = document.getElementById('confirmation-form');
+        const message = document.getElementById('message');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = form.querySelector('button');
+            button.disabled = true;
+            try {
+                const response = await fetch(window.location.pathname, { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) {
+                    message.className = 'error';
+                    message.textContent = result.error || JSON.stringify(result);
+                    button.disabled = false;
+                    return;
+                }
+                message.textContent = result.message;
+                form.hidden = true;
+            } catch (error) {
+                message.className = 'error';
+                message.textContent = '通信に失敗しました。もう一度お試しください。';
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -56,8 +56,22 @@ dj-moo/
 アプリ毎の単体テストについては、通常通り `python manage.py test` で実行とします。
 統合テストは、 `python manage.py test tests.integration` として実行とします。
 統合テストはダミーのみという状況ですが、後々規模が大きくなるとテストに時間がかかることが多いので切り分けてる形としています。
- 
----
+
+## フロントエンド（開発）
+
+アカウント画面は `frontend/` の Svelte アプリで動作します。Django API は Vite の `/api` プロキシ経由で呼び出します。
+
+1. `docker compose up -d` で起動後、VS Code の「Django: Docker Attach」を F5 で開始してください。Django は debugpy の接続後に API リクエストを受け付けます。
+2. `cd frontend && npm install && npm run dev` でフロントを起動します。Windows のブラウザから `http://localhost:5173` を開きます。
+3. メールは開発用の console backend に出力されます。登録・パスワード変更・メールアドレス変更のリンクは、Docker の `web` ログで確認してください。リンク先は Django の HTML フォームです。
+
+ログイン情報はブラウザーの `sessionStorage` に保存するため、同じタブの再読み込み後も利用できますが、タブを閉じるとログインし直しになります。Access Token の有効期間は15分、Refresh Token は7日です。
+
+----
+
+
+
+----
 
 ## memo
 

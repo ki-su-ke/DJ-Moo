@@ -230,11 +230,50 @@ django-safedelete を使用する。
 ## 7. URL 設計
 
 ```
-/{organization_slug}/products/              → Product 一
-/{organization_slug}/products/{product_id}/ → Product 詳細
+/api/v1/{organization_slug}/products/              → Product 一覧
+/api/v1/{organization_slug}/products/{product_id}/ → Product 詳細
 ```
 
-### 7-1. テナント解決と権限チェックの流れ
+### 7-1. 現時点の API 一覧
+
+API のベースパスは `/api/v1/` とする。
+
+#### API ルート
+
+| Method | Path | 内容 |
+|---|---|---|
+| GET | `/api/v1/` | API 情報とエンドポイント一覧 |
+
+#### 認証・アカウント
+
+| Method | Path | 内容 |
+|---|---|---|
+| POST | `/api/v1/auth/register/` | メールアドレス登録・認証メール送信 |
+| GET | `/api/v1/auth/verify/{token}/` | メール認証。登録完了フォームを表示 |
+| POST | `/api/v1/auth/complete/` | 登録完了・Organization 作成・JWT 発行 |
+| POST | `/api/v1/auth/login/` | ログイン・JWT 発行 |
+| POST | `/api/v1/auth/logout/` | ログアウト・Refresh Token 無効化 |
+| POST | `/api/v1/auth/token/refresh/` | Access Token 再発行 |
+| POST | `/api/v1/auth/change-password-request/` | パスワード変更メール送信 |
+| GET | `/api/v1/auth/change-password/{token}/` | パスワード変更フォームを表示 |
+| POST | `/api/v1/auth/change-password/{token}/` | パスワード変更 |
+| POST | `/api/v1/auth/change-email-request/` | メールアドレス変更メール送信 |
+| POST | `/api/v1/auth/change-email/{token}/` | メールアドレス変更 |
+| GET | `/api/v1/auth/me/` | ログインユーザーのプロフィール取得 |
+
+#### Organization・招待
+
+| Method | Path | 内容 |
+|---|---|---|
+| POST | `/api/v1/{organization_slug}/invitations/` | メンバー招待 |
+| GET | `/api/v1/{organization_slug}/invitations/` | Organization の招待一覧取得 |
+| POST | `/api/v1/{organization_slug}/invitations/{token}/accept/` | 招待承認 |
+| POST | `/api/v1/{organization_slug}/invitations/{token}/decline/` | 招待辞退 |
+
+
+
+
+### 7-2. テナント解決と権限チェックの流れ
 
 1. ミドルウェアで URL の `organization_slug` から Organization を解決し、`request.organization` にセット
 2. 同時に現在の User に対応する有効な Membership を取得し、`request.membership` にセット

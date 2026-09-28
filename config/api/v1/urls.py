@@ -8,12 +8,12 @@ def api_root(request):
         'message': 'DJ-MOO API v1',
         'endpoints': {
             'auth': '/api/v1/auth/',
-            'tenants': '/api/v1/tenants/',
+            'tenants': '/api/v1/{organization_slug}/',
         }
     })
 
 urlpatterns = [
     path('', api_root),
     path('auth/', include('accounts.urls')),
-    path('tenants/', include('tenants.urls')),
+    path('<slug:organization_slug>/', include('tenants.urls')),
 ]
