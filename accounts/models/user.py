@@ -53,6 +53,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="作成日時")
     """ 作成日時 """
 
+    deactivated_at = models.DateTimeField(null=True, blank=True, verbose_name="退会日時")
+    """
+    退会日時 未退会の場合はNULL
+    
+    ・退会状態は既存の is_active=False で表現できる
+    ・匿名化処理はService側で行う
+    ・is_anonymized のような状態重複を増やさない
+    ・deactivated_at IS NOT NULL で退会済みか判定できる
+    """
+
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新日時")
     """ 更新日時 """
 

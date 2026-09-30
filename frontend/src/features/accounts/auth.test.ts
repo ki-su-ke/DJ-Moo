@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { get } from 'svelte/store'
 import { authenticatedRequest, clearSession, login, logout, session } from './auth'
+import { apiRequest } from '../../shared/api'
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -99,5 +100,16 @@ describe('account session', () => {
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ refresh: 'r' })
     expect(get(session)).toBeNull()
     expect(sessionStorage.getItem('dj-moo-session')).toBeNull()
+  })
+})
+
+describe('API response handling', () => {
+  it('accepts a 204 response without attempting to parse a JSON body', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, {
+      status: 204,
+      headers: { 'Content-Type': 'application/json' },
+    })))
+
+    await expect(apiRequest<null>('/api/v1/auth/me/delete/', { method: 'DELETE' })).resolves.toBeNull()
   })
 })

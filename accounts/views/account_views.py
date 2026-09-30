@@ -1,10 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.core.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.request import Request
 from django.http import HttpResponse
 
@@ -13,13 +14,16 @@ from accounts.serializers import (
     ChangePasswordSerializer,
     ChangeEmailRequestSerializer,
     ChangeEmailSerializer,
-    UserProfileSerializer
+    UserProfileSerializer,
+    DeleteAccountSerializer,
+    DeleteMyAccountSerializer,
 )
 from accounts.models import (
     EmailVerificationToken, 
     EmailVerificationStatus,
     TokenType
 )
+from accounts.services import AccountService, LastOrganizationAdminError
 from common.utils.emails import send_templated_email
 
 import logging
@@ -342,3 +346,62 @@ class UserProfileView(APIView):
                 {"error": "プロフィールの取得に失敗しました。"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class DeleteMyAccountView(APIView):
+    """
+    自分自身のアカウントを退会する
+    DELETE /api/v1/auth/me/delete/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request: Request) -> Response:
+        serializer = DeleteMyAccountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            AccountService.deactivate_account(user=request.user)
+        except LastOrganizationAdminError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Failed to delete account: {str(e)}", exc_info=True)
+            return Response(
+                {"error": "退会処理に失敗しました。"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {"message": "退会しました。"},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class DeleteAccountView(APIView):
+    """
+    staffによる指定ユーザーの退会処理
+    DELETE /api/v1/auth/admin/delete-account/<user_id>/
+    """
+    permission_classes = [IsAdminUser]
+
+    def delete(self, request: Request, user_id) -> Response:
+        serializer = DeleteAccountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_user = get_object_or_404(User, pk=user_id)
+
+        try:
+            AccountService.deactivate_account(user=target_user)
+        except LastOrganizationAdminError as e:
+            return Response({"error": str(e)}, status=status.HTTP_409_CONFLICT)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+

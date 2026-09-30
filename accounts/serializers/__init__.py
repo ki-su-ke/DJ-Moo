@@ -1,7 +1,7 @@
 from .auth_serializers import (
     RegisterSerializer,
     CompleteRegistrationSerializer,
-    LoginSerializer
+    LoginSerializer,
 )
 from .account_serializers import (
     ChangePasswordRequestSerializer,
@@ -9,6 +9,8 @@ from .account_serializers import (
     ChangeEmailRequestSerializer,
     ChangeEmailSerializer,
     UserProfileSerializer,
+    DeleteAccountSerializer,
+    DeleteMyAccountSerializer,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     'ChangeEmailRequestSerializer',
     'ChangeEmailSerializer',
     'UserProfileSerializer',
+    'DeleteAccountSerializer',
+    "DeleteMyAccountSerializer",
 ]

@@ -12,6 +12,8 @@ from .account_views import (
     ChangeEmailRequestView,
     ChangeEmailView,
     UserProfileView,
+    DeleteMyAccountView,
+    DeleteAccountView,
 )
  
 __all__ = [
@@ -25,4 +27,6 @@ __all__ = [
     'ChangeEmailRequestView',
     'ChangeEmailView',
     'UserProfileView',
+    'DeleteMyAccountView',
+    'DeleteAccountView',
 ]

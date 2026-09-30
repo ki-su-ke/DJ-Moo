@@ -3,9 +3,11 @@ from .invitation_views import (
     AcceptInvitationView,
     DeclineInvitationView,
 )
+from .membership_views import OrganizationMembersView
 
 __all__ = [
     'InviteMemberView',
     'AcceptInvitationView',
     'DeclineInvitationView',
+    'OrganizationMembersView',
 ]

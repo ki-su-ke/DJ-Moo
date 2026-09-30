@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Building2, KeyRound, LogOut, Mail, ShieldCheck, UserRound } from '@lucide/svelte'
-  import { ApiError } from './shared/api'
-  import { authenticatedRequest, login, logout, session } from './features/accounts/auth'
+  import { authenticatedRequest, clearSession, login, logout, session } from './features/accounts/auth'
   import {
+    deleteMyAccount,
     getProfile,
     requestEmailChange,
     requestPasswordChange,
@@ -65,6 +65,14 @@
     navigate('/login')
   }
 
+  /** 退会成功後にセッションを破棄してログイン画面へ戻す。 */
+  async function finishAccountDeletion() {
+    await deleteMyAccount()
+    clearSession()
+    profile = null
+    navigate('/login')
+  }
+
   $effect(() => {
     if (!$session && protectedRoutes.includes(route)) navigate('/login')
   })
@@ -105,7 +113,7 @@
       <header class="topbar"><span>MY ACCOUNT</span><button class="quiet-button" onclick={signOut}><LogOut size={16} />ログアウト</button></header>
       {#if logoutError}<p class="toast-error" role="alert">{logoutError}</p>{/if}
       {#if route === '/profile'}
-        <ProfilePage {profile} {loadingProfile} error={profileError} onrefresh={loadProfile} />
+        <ProfilePage {profile} {loadingProfile} error={profileError} onrefresh={loadProfile} ondeleteaccount={finishAccountDeletion} />
       {:else if route === '/account/change-password'}
         <PasswordRequestPage onrequest={requestPasswordChange} />
       {:else if route === '/account/change-email'}

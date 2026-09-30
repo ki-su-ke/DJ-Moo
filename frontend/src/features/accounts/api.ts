@@ -18,6 +18,13 @@ export type UserProfile = {
   memberships: Membership[]
 }
 
+export type OrganizationMember = {
+  id: string
+  user_id: string
+  email: string
+  is_org_admin: boolean
+}
+
 type MessageResponse = { message: string }
 
 export function requestRegistration(email: string) {
@@ -29,6 +36,29 @@ export function requestRegistration(email: string) {
 
 export function getProfile() {
   return authenticatedRequest<UserProfile>('/api/v1/auth/me/')
+}
+
+/** DELETE 成功後は 204 を null として受け取る。 */
+export function deleteMyAccount() {
+  return authenticatedRequest<null>('/api/v1/auth/me/delete/', {
+    method: 'DELETE',
+    body: JSON.stringify({ confirmation: 'DELETE' }),
+  })
+}
+
+/** 組織 Admin 用の有効メンバー一覧を取得する。 */
+export function getOrganizationMembers(organizationSlug: string) {
+  return authenticatedRequest<{ members: OrganizationMember[] }>(
+    `/api/v1/${encodeURIComponent(organizationSlug)}/members/`,
+  )
+}
+
+/** アカウントではなく、指定組織の Membership だけを削除する。 */
+export function removeOrganizationMember(organizationSlug: string, membershipId: string) {
+  return authenticatedRequest<null>(
+    `/api/v1/${encodeURIComponent(organizationSlug)}/members/${encodeURIComponent(membershipId)}/`,
+    { method: 'DELETE' },
+  )
 }
 
 export function requestPasswordChange() {

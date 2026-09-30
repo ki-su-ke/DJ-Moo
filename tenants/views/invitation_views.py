@@ -11,6 +11,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 # from django.http import HttpResponse
 
+from audit.models import SecurityEventType
+from audit.services import AuditService
 from tenants.serializers import (
     InviteMemberSerializer,
     AcceptInvitationSerializer,
@@ -41,7 +43,7 @@ class InviteMemberView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, organization_slug: str) -> Response:
-        """組織の招待一覧を取得する"""
+        """組織 Admin のみ招待一覧を取得し、権限不足を監査ログへ記録する。"""
         try:
             organization = Organization.objects.get(slug=organization_slug)
             membership = request.user.memberships.filter(
@@ -51,6 +53,15 @@ class InviteMemberView(APIView):
             ).first()
 
             if not membership:
+                AuditService.record_security_event(
+                    request=request,
+                    user=request.user,
+                    event_type=SecurityEventType.PERMISSION_DENIED,
+                    attempted_organization_slug=organization.slug,
+                    target_resource="Organization",
+                    target_resource_id=str(organization.pk),
+                    remarks="Non-admin requested the organization invitation list.",
+                )
                 return Response(
                     {"error": "組織管理者のみが閲覧できます"},
                     status=status.HTTP_403_FORBIDDEN,
@@ -74,7 +85,7 @@ class InviteMemberView(APIView):
             )
 
     def post(self, request: Request, organization_slug: str) -> Response:
-        """ メンバーを招待する """
+        """組織 Admin のみ招待を作成し、権限不足を監査ログへ記録する。"""
         serializer = InviteMemberSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
@@ -91,6 +102,15 @@ class InviteMemberView(APIView):
                                         ).first()
                 
                 if not inviter_membership:
+                    AuditService.record_security_event(
+                        request=request,
+                        user=request.user,
+                        event_type=SecurityEventType.PERMISSION_DENIED,
+                        attempted_organization_slug=organization.slug,
+                        target_resource="Organization",
+                        target_resource_id=str(organization.pk),
+                        remarks="Non-admin attempted to invite a member.",
+                    )
                     return Response(
                         {"error": "組織管理者のみが招待できます。"},
                         status=status.HTTP_403_FORBIDDEN
@@ -193,7 +213,7 @@ class AcceptInvitationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, organization_slug: str, token: str) -> Response:
-        """ 招待を承認する """
+        """招待を承認し、有効 token の組織不一致だけを監査ログへ記録する。"""
         serializer = AcceptInvitationSerializer(data={'token': token})
         if serializer.is_valid():
             try:
@@ -238,6 +258,23 @@ class AcceptInvitationView(APIView):
                     status=status.HTTP_200_OK
                 )
             except MembershipInvitation.DoesNotExist:
+                invitation = MembershipInvitation.objects.filter(
+                    token=token,
+                ).select_related("organization").first()
+                if (
+                    invitation
+                    and invitation.is_valid()
+                    and invitation.organization.slug != organization_slug
+                ):
+                    AuditService.record_security_event(
+                        request=request,
+                        user=request.user,
+                        event_type=SecurityEventType.TENANT_ESCAPE,
+                        attempted_organization_slug=organization_slug,
+                        target_resource="MembershipInvitation",
+                        target_resource_id=str(invitation.id),
+                        remarks="A valid invitation token was used with another organization.",
+                    )
                 return Response(
                     {"error": "招待が見つかりません。"},
                     status=status.HTTP_404_NOT_FOUND
@@ -259,7 +296,7 @@ class DeclineInvitationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, organization_slug: str, token: str) -> Response:
-        """ 招待を拒否する """
+        """招待を拒否し、有効 token の組織不一致だけを監査ログへ記録する。"""
         serializer = DeclineInvitationSerializer(data={'token': token})
         if serializer.is_valid():
             try:
@@ -279,6 +316,23 @@ class DeclineInvitationView(APIView):
                     status=status.HTTP_200_OK
                 )
             except MembershipInvitation.DoesNotExist:
+                invitation = MembershipInvitation.objects.filter(
+                    token=token,
+                ).select_related("organization").first()
+                if (
+                    invitation
+                    and invitation.is_valid()
+                    and invitation.organization.slug != organization_slug
+                ):
+                    AuditService.record_security_event(
+                        request=request,
+                        user=request.user,
+                        event_type=SecurityEventType.TENANT_ESCAPE,
+                        attempted_organization_slug=organization_slug,
+                        target_resource="MembershipInvitation",
+                        target_resource_id=str(invitation.id),
+                        remarks="A valid invitation token was used with another organization.",
+                    )
                 return Response(
                     {"error": "招待が見つかりません。"},
                     status=status.HTTP_404_NOT_FOUND

@@ -12,6 +12,8 @@ from accounts.views import (
     ChangeEmailRequestView,
     ChangeEmailView,
     UserProfileView,
+    DeleteMyAccountView,
+    DeleteAccountView,
 )
 
 # app_name = 'auth'
@@ -31,6 +33,8 @@ urlpatterns = [
     path('change-email-request/', ChangeEmailRequestView.as_view(), name='change_email_request'),
     path('change-email/<uuid:token>/', ChangeEmailView.as_view(), name='change_email'),
     path('me/', UserProfileView.as_view(), name='user_profile'),
+    path('me/delete/', DeleteMyAccountView.as_view(), name='delete_my_account'),
+    path('admin/delete-account/<uuid:user_id>/', DeleteAccountView.as_view(), name='delete_account'),
     
     # SimpleJWT標準エンドポイント
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

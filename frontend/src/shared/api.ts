@@ -14,6 +14,8 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   if (options.body) headers.set('Content-Type', 'application/json')
 
   const response = await fetch(path, { ...options, headers })
+  if (response.status === 204) return null as T
+
   const payload: unknown = response.headers.get('content-type')?.includes('application/json')
     ? await response.json()
     : null

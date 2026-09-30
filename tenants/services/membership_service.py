@@ -400,11 +400,12 @@ class MembershipService:
         
         Args:
             membership: 対象のメンバーシップ
-        
-        raises:
-            ValidationError / etc
+
+        組織を先にロックして Admin 数を確認し、最終 Admin の削除を防ぐ。
         """
         try:
+            Organization.objects.select_for_update().get(pk=membership.organization_id)
+            membership = Membership.objects.select_for_update().get(pk=membership.pk)
             MembershipService._ensure_last_admin_will_remain(membership=membership)
             membership.delete()
         except Exception as e:
