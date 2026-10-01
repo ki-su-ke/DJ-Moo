@@ -121,6 +121,7 @@ class VerifyView(APIView):
                 {
                     'token': token,
                     'email': token_obj.email,
+                    'login_url': f'{settings.FRONTEND_URL}/login',
                 }
             )
         except EmailVerificationToken.DoesNotExist:

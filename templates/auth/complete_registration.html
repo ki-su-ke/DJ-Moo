@@ -135,7 +135,7 @@
             };
             
             try {
-                const response = await fetch('/api/auth/complete/', {
+                const response = await fetch('/api/v1/auth/complete/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -150,11 +150,10 @@
                         <div class="container">
                             <h1>登録完了！</h1>
                             <p>アカウントと組織が作成されました。</p>
-                            <p>アクセストークン: <code>${result.access.substring(0, 20)}...</code></p>
-                            <p>リフレッシュトークン: <code>${result.refresh.substring(0, 20)}...</code></p>
-                            <p>これらのトークンを安全に保存してください。</p>
+                            <a id="login-link" href="#">ログインへ進む</a>
                         </div>
                     `;
+                    document.getElementById('login-link').href = '{{ login_url|escapejs }}';
                 } else {
                     errorContainer.textContent = result.error || JSON.stringify(result);
                     errorContainer.style.display = 'block';

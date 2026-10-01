@@ -176,3 +176,37 @@ class UserProfileSerializer(serializers.ModelSerializer):
             }
             for membership in memberships
         ]
+
+
+class DeleteAccountSerializer(serializers.Serializer):
+    """ アカウント削除用Serializer """
+    confirmation = serializers.CharField(required=True)
+
+    def validate_confirmation(self, value):
+        if value != "DELETE":
+            raise serializers.ValidationError("確認文字列が一致しません。")
+        return value
+
+
+class DeleteMyAccountSerializer(serializers.Serializer):
+    """
+    自分自身の退会確認用Serializer
+    
+    既存の DeleteAccountSerializer を使うのではなく、
+    自分用の確認文字列専用Serializer を別設計する
+    このSerializerは「入力の厳密チェック」に集中
+    実際の退会ロジックはService側に任せる
+    ちょっとAWS風に”DELETE"の入力を求めてみる
+    """
+    confirmation = serializers.CharField(
+        required=True,
+        write_only=True,
+        help_text="退会確認のために DELETE を入力してください",
+    )
+
+    def validate_confirmation(self, value: str) ->str:
+        """ 退会確認のためのバリデーション """
+        if value != "DELETE":
+            raise serializers.ValidationError("確認文字列が一致しません。")
+        return value
+
